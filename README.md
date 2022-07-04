@@ -1,5 +1,5 @@
 # dd-infer
-Data-driven Infer 
+dd-infer is a data-driven version of infer (https://github.com/facebook/infer), which replaces the path-selection heuristic of infer by a new one automatically learned from data. 
 
 ## Installation Guides
 ### Requirements:
@@ -45,13 +45,13 @@ Since Infer's call-graph construction algorithm makes the analysis non-determini
 ```
 Call-graphs are generated in `/vagrant/cgs`.
 
-### Running Original Infer
+### Running original infer
 To run original Infer on 
 ```
 $ infer analyze --pulse-only -o /home/vagrant/infer-outs/gawk-5.1.0
 ```
 
-### Running Data-Driven Infer
+### Running dd-infer
 ```
-$ ./bin/DDInfer.sh ~/infer-outs/gawk-5.1.0
+$ ./bin/dd-infer.sh ~/infer-outs/gawk-5.1.0
 ```
