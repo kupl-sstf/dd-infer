@@ -1,4 +1,4 @@
-# dd-infer
+# Data-driven Infer (dd-infer)
 dd-infer is a data-driven version of infer (https://github.com/facebook/infer), which replaces the path-selection heuristic of infer by a new one automatically learned from data. 
 
 ## Installation Guides
