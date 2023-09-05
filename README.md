@@ -3,6 +3,7 @@
 dd-infer is a data-driven version of infer (https://github.com/facebook/infer), which replaces the path-selection heuristic of infer by a new one automatically learned from data.
 For details, see the paper "Learning to Boost Disjunctive Static Bug-Finders (ICSE2023)".
 
+Baseline Infer: https://github.com/facebook/infer/tree/3df3ca9eacdf2e7a697b69a716896bbee7419a7a
 
 ## Installation Guides
 In this installation guide, we use VirtualBox and Vagrant to replicate the experiments presented in the paper. However, these are not mandatory for running the data-driven Infer tool. You may also try building the artifact by following the [instructions](https://github.com/facebook/infer/blob/main/INSTALL.md).
