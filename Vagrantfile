@@ -1,24 +1,22 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
+# Copyright (c) Meta, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
 unless Vagrant.has_plugin?("vagrant-disksize")
     raise  Vagrant::Errors::VagrantError.new, "vagrant-disksize plugin is missing. Please install it using 'vagrant plugin install vagrant-disksize' and rerun 'vagrant up'"
 end
 
 Vagrant.configure("2") do |config|
-  # The most common configuration options are documented and commented below.
-  # For a complete reference, please see the online documentation at
-  # https://docs.vagrantup.com.
-
   config.disksize.size = '200GB'
+  config.ssh.insert_key = false
   config.vm.define "default" do |main|
     main.vm.box = "ubuntu/bionic64"
     main.vm.synced_folder ".", "/vagrant"
-    main.vm.synced_folder "./benchmarks", "/benchmarks"
 
     main.vm.provider "virtualbox" do |vb|
       vb.memory = 16384  # recommended 16384
@@ -39,6 +37,7 @@ Vagrant.configure("2") do |config|
     apt-get update && \
         mkdir -p /usr/share/man/man1 && \
         apt-get install --yes --no-install-recommends \
+          nodejs \
           autoconf \
           automake \
           bubblewrap \
@@ -85,7 +84,8 @@ Vagrant.configure("2") do |config|
 
   main.vm.provision "shell", privileged: false, inline: <<-SHELL
     python -m pip install --upgrade pip
-    python -m pip install wheel setuptools Cython
+    python -m pip install wheel Cython
+    wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo python
     python -m pip install numpy sklearn scipy
     python -m pip install pandas
     python -m pip install xgboost matplotlib
@@ -94,10 +94,14 @@ Vagrant.configure("2") do |config|
     echo "export PROJECT_ROOT=/vagrant" >> ~/.bashrc
 
     # Prepare the infer source code
-    git clone https://github.com/hakjoooh/infer.git
+    pushd /home/vagrant
+    git clone /vagrant/infer
     pushd infer
-    git checkout ml-research-old
 
+    # Apply a patch for the data-driven Infer
+    git reset --hard 3df3ca9eacdf2e7a697b69a716896bbee7419a7a
+    git apply /vagrant/patches/0001-ddinfer-Data-driven-Infer-Initial-commit.patch
+    
     # infer compilation
     ./build-infer.sh --only-setup-opam
 
@@ -115,12 +119,6 @@ Vagrant.configure("2") do |config|
          libdir_relative_to_bindir="../lib"
 
     source ~/.bashrc
-  SHELL
-
-  main.vm.provision "shell", inline: <<-SHELL
-    # Install packages for building benchmark programs
-    cd /vagrant
-    ./install.sh
   SHELL
   end
 end

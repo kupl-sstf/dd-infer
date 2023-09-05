@@ -1,8 +1,13 @@
-#!/usr/bin/env node
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ * 
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 const fs = require('fs');
 const fmt = require('./formating.js');
-const pp = require("json-beautify");
 
 const table = {};
 
@@ -17,6 +22,10 @@ let terminal_mode = false;
 let ml_mode = false
 let group_mode = false;
 let summary_mode = false;
+let filter_memory = false;
+let similarity_mode = false;
+let similarity2_mode = false;
+let no_endline = false;
 const files = [];
 for (let i=2; i<process.argv.length; i++) {
 	let filename = process.argv[i];
@@ -25,6 +34,10 @@ for (let i=2; i<process.argv.length; i++) {
 		if (filename === '-tm') terminal_mode = true;
 		if (filename === '-g') group_mode = true;
 		if (filename === '-s') summary_mode = true;
+		if (filename === '-a') similarity_mode = true;
+		if (filename === '-a2') similarity2_mode = true;
+		if (filename === '-fm') filter_memory = true;
+		if (filename === '-e') no_endline = true;
 		continue;
 	}
 	files.push(filename);
@@ -59,15 +72,14 @@ if (group_mode) {
 	}
 }
 
-function get_signature(name) {
-	// TODO
+function get_similarity_hash(hash) {
+	return JSON.stringify(JSON.parse(hash).bug_trace[0]);
 }
 
 let ml_new = -1;
 for (let i=0; i<files.length; i++) {
 	let filename = files[i];
 	let uname = filename.replace('.json', '');
-	let signature = get_signature(uname+'.cycle');
 	let txt = uname.replace(/.*\//, '').split('_');
 	name = `${txt[0]}`;
 	let k = +txt[1];
@@ -75,6 +87,9 @@ for (let i=0; i<files.length; i++) {
 		ml_mode = true;
 		k = k + "-" + txt[2];
 		if (ml_new === -1) ml_new = set.size;
+	}
+	if (txt[3] !== undefined) {
+		k = k + "-" + txt[3];
 	}
 	let raw = "[]";
 	try {
@@ -85,6 +100,9 @@ for (let i=0; i<files.length; i++) {
 	for (let j=0; j<json.length; j++) {
 		const uid = hash(json[j]);
 		let bt = json[j].bug_type;
+		if (filter_memory && bt !== 'MEMORY_LEAK') {
+			continue;
+		}
 		if (reports[bt] === undefined) {
 			reports[bt] = {};
 		}
@@ -193,7 +211,27 @@ if (md_mode) {
 	const mlonly = new Set([...mlset].filter(x => !baseset.has(x)));
 	const baseonly = new Set([...baseset].filter(x => !mlset.has(x)));
 	const inter = new Set([...mlset].filter(x => baseset.has(x)));
-	console.log(baseonly.size, inter.size, mlonly.size);
+	if (similarity_mode) {
+		const basesim = [...baseset].map(get_similarity_hash);
+		const mlsim = [...mlset].map(get_similarity_hash);
+		const sim = [...mlsim].filter(x => basesim.indexOf(x)>=0);
+		if (baseset.size+mlset.size === 0) console.log(0)
+		else console.log(sim.length*2/(baseset.size+mlset.size));
+	} else if (similarity2_mode) {
+		const mlonlysim = [...mlonly].map(get_similarity_hash);
+		const basesim = [...baseset].map(get_similarity_hash);
+		const mlsim = [...mlset].map(get_similarity_hash);
+		const sim = [...mlonlysim].filter(x => basesim.indexOf(x)>=0);
+		const r = (inter.size+sim.length)/(mlonly.size+inter.size);
+		console.log(r);
+	} else {
+		if (no_endline) {
+			const out = `${baseset.size} ${mlset.size} ${baseonly.size} ${mlonly.size} ${inter.size} ${(inter.size*2/(baseset.size+mlset.size)).toFixed(2)}`;
+			process.stdout.write(out);
+		} else {
+			console.log(baseset.size, mlset.size, baseonly.size, mlonly.size, inter.size, (inter.size*2/(baseset.size+mlset.size)).toFixed(2));
+		}
+	}
 } else {
 	for (let i=0; i<keys.length; i++) {
 		let items = table[keys[i]];
@@ -217,4 +255,3 @@ if (md_mode) {
 		}
 	}
 }
-//console.log(pp(JSON.parse(xx), null, 2, 80));
